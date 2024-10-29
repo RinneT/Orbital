@@ -1,0 +1,32 @@
+[gd_scene load_steps=2 format=3 uid="uid://bjjjduxnj3q88"]
+
+[ext_resource type="Script" path="res://hud.gd" id="1_6usr7"]
+
+[node name="Hud" type="CanvasLayer"]
+script = ExtResource("1_6usr7")
+
+[node name="BouncesLabel" type="Label" parent="."]
+offset_right = 40.0
+offset_bottom = 23.0
+size_flags_horizontal = 4
+text = "Bounces: 0"
+
+[node name="ControlMessage" type="Label" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -147.0
+offset_bottom = 49.0
+grow_horizontal = 0
+text = "Release Ball: Space
+Reset: Escape"
+
+[node name="GoalMessage" type="Label" parent="."]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -20.0
+offset_right = 20.0
+offset_bottom = 23.0
+grow_horizontal = 2
+text = "Use the planets gravity to shoot the ball into the goal"

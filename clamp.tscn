@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3 uid="uid://cka8tmylt5701"]
+
+[ext_resource type="Texture2D" uid="uid://c2nlntu62l8n7" path="res://Clamp.png" id="1_0jrx2"]
+[ext_resource type="Script" path="res://clamp.gd" id="1_kul40"]
+
+[node name="Clamp" type="Area2D"]
+script = ExtResource("1_kul40")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, 64)
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("1_0jrx2")
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
+position = Vector2(0, 64)
+scale = Vector2(0.5, 0.5)
+polygon = PackedVector2Array(-128, -128, -128, -3, -65, 64, -56, -5, 55, -5, 65, 64, 128, -3, 128, -128)

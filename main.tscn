@@ -1,0 +1,66 @@
+[gd_scene load_steps=11 format=3 uid="uid://e6qbwnhy6wsu"]
+
+[ext_resource type="PackedScene" uid="uid://cka8tmylt5701" path="res://clamp.tscn" id="1_jo45g"]
+[ext_resource type="Script" path="res://main.gd" id="1_ks33d"]
+[ext_resource type="PackedScene" uid="uid://byb8lm6mdrklc" path="res://ball.tscn" id="3_3uiql"]
+[ext_resource type="PackedScene" uid="uid://b2skcn4ngoghv" path="res://planet.tscn" id="4_emr5r"]
+[ext_resource type="Texture2D" uid="uid://dm68mr5iocnru" path="res://Ball.png" id="4_wfbub"]
+[ext_resource type="PackedScene" uid="uid://b1n7ukhbo223n" path="res://goal.tscn" id="5_6ibg7"]
+[ext_resource type="PackedScene" uid="uid://bjjjduxnj3q88" path="res://hud.tscn" id="6_6riio"]
+[ext_resource type="Texture2D" uid="uid://cdop3sevhiq4f" path="res://Background.png" id="7_prhh8"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_7ukut"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_avr05"]
+radius = 32.0156
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_ks33d")
+
+[node name="Clamp" parent="." instance=ExtResource("1_jo45g")]
+
+[node name="PhysicsPredictionBall" type="RigidBody2D" parent="Clamp"]
+collision_layer = 2
+collision_mask = 2
+physics_material_override = SubResource("PhysicsMaterial_7ukut")
+
+[node name="Sprite2D" type="Sprite2D" parent="Clamp/PhysicsPredictionBall"]
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("4_wfbub")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Clamp/PhysicsPredictionBall"]
+shape = SubResource("CircleShape2D_avr05")
+
+[node name="Player_Clamp_Start" type="Marker2D" parent="."]
+position = Vector2(200, 0)
+
+[node name="Goal" parent="." instance=ExtResource("5_6ibg7")]
+position = Vector2(1358, 1016)
+
+[node name="Ball" parent="." instance=ExtResource("3_3uiql")]
+collision_layer = 1
+collision_mask = 1
+
+[node name="Planet" parent="." instance=ExtResource("4_emr5r")]
+position = Vector2(987.935, 506.29)
+
+[node name="Planet2" parent="." instance=ExtResource("4_emr5r")]
+position = Vector2(410.283, 944.248)
+rotation = -0.785397
+
+[node name="Planet3" parent="." instance=ExtResource("4_emr5r")]
+position = Vector2(1803.44, 868.738)
+
+[node name="Hud" parent="." instance=ExtResource("6_6riio")]
+
+[node name="Timer" type="Timer" parent="."]
+one_shot = true
+
+[node name="Background" type="Sprite2D" parent="."]
+visible = false
+show_behind_parent = true
+position = Vector2(960, 540)
+texture = ExtResource("7_prhh8")
+
+[connection signal="hit" from="Goal" to="." method="goal"]
+[connection signal="collision" from="Ball" to="." method="_on_ball_collision"]
