@@ -2,7 +2,7 @@ extends RigidBody2D
 signal collision
 
 # TODO: Internalize to clamp
-var EXPLOSION_FORCE : float = 0.0
+var EXPLOSION_FORCE : float = 2000.0
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
@@ -11,10 +11,7 @@ func _ready():
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta):
-	var body_id = get_rid()
-	var state = PhysicsServer2D.body_get_direct_state(body_id)
-	var gravity = state.total_gravity
-	#print(gravity)
+	pass
 
 func start():
 	show()

@@ -5,15 +5,34 @@ var screen_size # size of the game window
 var ball : RigidBody2D # reference to the $Ball object
 var PLANETS : Array[StaticBody2D]
 var released # true if the Ball was released
+var simulation_viewport : SubViewport
 
 # TODO: Unify with ball
-var EXPLOSION_FORCE : float = 0.0
-@onready var PHYSICS_TEST_BALL : RigidBody2D = $PhysicsPredictionBall
+var test_ball = preload("res://ball.tscn")
+var EXPLOSION_FORCE : float = 2000.0
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	screen_size = get_viewport_rect().size
+	create_sub_view()
 
+# Creates a SubViewport that is used for physics prediction simulation
+func create_sub_view() -> void:
+	simulation_viewport = SubViewport.new()
+	simulation_viewport.size = screen_size
+	simulation_viewport.disable_3d = true
+	var win = Window.new()
+	win.add_child(simulation_viewport)
+	add_child(win)
+	win.hide()
+	
+	# Deactivate automatic physics calculation in the space
+	PhysicsServer2D.space_set_active(simulation_viewport.world_2d.space, false)
+
+func instantiate_ball(viewport: Viewport) -> RigidBody2D:
+	var ball_inst = test_ball.instantiate()
+	viewport.add_child(ball_inst)
+	return ball_inst
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta):
@@ -46,6 +65,8 @@ func start(pos: Vector2, ball_obj: RigidBody2D, planets: Array[StaticBody2D]):
 	ball = ball_obj
 	position = pos
 	PLANETS = planets
+	for planet in PLANETS:
+		simulation_viewport.add_child(planet.duplicate())
 	show()
 
 func release():
@@ -55,7 +76,32 @@ func release():
 
 # Draw a prediction path of the player
 func _draw() -> void:
-	update_trajectory()
+	simulate_trajectory()
+	
+# Simulate the trajectory using Rapier2Ds manual step
+func simulate_trajectory() -> void:
+	var space : RID = simulation_viewport.world_2d.space
+	var fixed_delta = 1.0 / ProjectSettings.get_setting("physics/common/physics_ticks_per_second")
+	# Create our simulation test ball
+	var sim_ball = instantiate_ball(simulation_viewport)
+	sim_ball.apply_force(Vector2(0, EXPLOSION_FORCE))
+	teleport(Vector2(global_position.x, global_position.y + 100), sim_ball)
+	
+	# Create our line parameters
+	var line_start : Vector2
+	var line_end : Vector2
+	var colors := [Color.RED, Color.BLUE]
+
+	# Run the physics loop and draw the line after each step
+	for i in 1000:
+		line_start = sim_ball.global_position
+		RapierPhysicsServer2D.space_step(space, fixed_delta)
+		RapierPhysicsServer2D.space_flush_queries(space)
+		line_end = sim_ball.global_position
+		draw_line_global(line_start, line_end, colors[i%2])
+	
+	# Delete the simulation test ball
+	sim_ball.queue_free()
 
 # Draw a line using global coordinates
 func draw_line_global(pointA: Vector2, pointB: Vector2, color: Color, width: int = -1) -> void:
@@ -63,82 +109,19 @@ func draw_line_global(pointA: Vector2, pointB: Vector2, color: Color, width: int
 	var pointB_local := pointB - global_position
 	draw_line(local_offset, pointB_local, color, width)
 
-# Simulate the physics process to predict the path
-func update_trajectory() -> void:
-	PHYSICS_TEST_BALL.hide()
-	var body_id = PHYSICS_TEST_BALL.get_rid()
-	var state = PhysicsServer2D.body_get_direct_state(body_id)
-	PHYSICS_TEST_BALL.set_deferred("freeze", false)
-		
-	var line_start := Vector2(global_position.x, global_position.y + 100)
-	var line_end : Vector2
-
-	var drag : float = 0.0
-	# Lower timestep value = more precise physics calculation. Engine uses 0.0166..
-	var timestep := 0.0166
-	# Alternating colors of the line
-	var colors := [Color.RED, Color.BLUE]
-	PHYSICS_TEST_BALL.global_position = line_start
+func teleport(pos: Vector2, object: RigidBody2D):
+	# setting both the position, 
+	object.position = pos
+	object.global_position = pos
+	# as well as performing a physics state change
+	# The reason is that only changing the state induces a "lag"
+	# (I assume because it is only processed on the next tick)
+	# This causes issues with the Clamp collision
+	# Setting the position as well when the ball is deferred seems to fix that
+	PhysicsServer2D.body_set_state(
+	object.get_rid(),
+	PhysicsServer2D.BODY_STATE_TRANSFORM,
+	Transform2D.IDENTITY.translated(pos))
 	
-	# Initial calculation and force application
-	var gravity_vec = simulate_gravity(PHYSICS_TEST_BALL)
-	var velocity : Vector2 = calculate_velocity(PHYSICS_TEST_BALL, timestep, gravity_vec, Vector2(0, EXPLOSION_FORCE))
-	
-	# Smooth sailing without force application from here
-	# Predict until a goal is hit, or max steps
-	for i : int in 500:
-		#var gravity_vec = state.total_gravity
-		gravity_vec = simulate_gravity(PHYSICS_TEST_BALL)
-		#print("Sim: " + str(gravity_vec))
-		velocity += calculate_velocity(PHYSICS_TEST_BALL, timestep, gravity_vec)
-		velocity = velocity * clampf(1.0 - drag * timestep, 0, 1)
-		line_end = line_start + (velocity * timestep)
-		
-		var collision:= PHYSICS_TEST_BALL.move_and_collide(velocity * timestep)
-		# If it hits something
-		if collision:
-			# TODO: differentiate between bodies (calculate bounce and continue)
-			# and the goal (break and finish)
-			velocity = velocity.bounce(collision.get_normal())
-			draw_line_global(line_start, PHYSICS_TEST_BALL.global_position, Color.YELLOW)
-			line_start = PHYSICS_TEST_BALL.global_position
-			continue
-		
-		draw_line_global(line_start, line_end, colors[i%2])
-		line_start = line_end
-
-func calculate_velocity(object: RigidBody2D, timestep: float, gravity = Vector2(), applied_force = Vector2(), constant_force = Vector2()) -> Vector2:
-	return object.mass * gravity + applied_force + constant_force
-
-# Function to simulate the gravity at a given global coordinate
-# This is mostly adapted from void GodotBody2D::integrate_forces in godot_body_2d.cpp
-func simulate_gravity(ball: RigidBody2D) -> Vector2:
-	var planet_gravity := Vector2(0,0)
-	for planet in PLANETS:
-		planet_gravity += get_gravity_for_body(ball, planet)
-	return planet_gravity
-	#force = planet_gravity * ball.mass + appliedForce + ball.constant_force
-	#return force
-		
-# Function to simulate the gravity at a given global coordinate
-# This is mostly adapted from void GodotBody2D::integrate_forces in godot_body_2d.cpp
-# and https://www.reddit.com/r/gamedev/comments/w6woww/adding_orbital_gravity_to_your_game/
-func get_gravity_for_body(satellite: RigidBody2D, planet: StaticBody2D) -> Vector2:
-	var planet_gravity_area : Area2D = planet.get_node("Area2D")
-	var planet_gravity := Vector2(0,0)
-	var gr_unit_dist : float = 0.0
-	if planet_gravity_area.gravity_point:
-		gr_unit_dist = planet_gravity_area.gravity_point_unit_distance
-	
-	# Get the direction in-between the planet and the satellite
-	var v : Vector2 = planet.global_position - satellite.global_position
-	
-	if gr_unit_dist > 0:
-		var v_length_sq = v.length_squared()
-		if (v_length_sq > 0):
-			var gravity_strength = planet_gravity_area.gravity * gr_unit_dist * gr_unit_dist / v_length_sq
-			planet_gravity = v.normalized() * gravity_strength
-	else:
-		planet_gravity = v.normalized() * planet_gravity_area.gravity
-	
-	return planet_gravity
+	# Reset velocity
+	object.linear_velocity = Vector2()

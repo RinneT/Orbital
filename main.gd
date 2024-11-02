@@ -23,7 +23,7 @@ func new_game():
 	$Background.visible = true
 
 func goal():
-	$Ball.hide()
+	#$Ball.hide()
 	set_deferred("freeze", true)
 
 
