@@ -45,4 +45,5 @@ position = Vector2(960, 540)
 texture = ExtResource("7_prhh8")
 
 [connection signal="hit" from="Goal" to="." method="goal"]
+[connection signal="body_entered" from="Ball" to="." method="_on_ball_body_entered"]
 [connection signal="collision" from="Ball" to="." method="_on_ball_collision"]

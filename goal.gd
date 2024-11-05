@@ -13,4 +13,4 @@ func _process(delta):
 
 
 func _on_body_entered(body):
-	hit.emit()
+	hit.emit(body)

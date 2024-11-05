@@ -6,10 +6,12 @@ var ball : RigidBody2D # reference to the $Ball object
 var PLANETS : Array[StaticBody2D]
 var released # true if the Ball was released
 var simulation_viewport : SubViewport
+var simulation_goal: Area2D
 
 # TODO: Unify with ball
 var test_ball = preload("res://ball.tscn")
-var EXPLOSION_FORCE : float = 2000.0
+var EXPLOSION_FORCE : Vector2 = Vector2(0, 300.0)
+var fixed_delta = 1.0 / ProjectSettings.get_setting("physics/common/physics_ticks_per_second")
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
@@ -57,51 +59,79 @@ func _process(delta):
 	if (!released):
 		var adapted_pos = position
 		adapted_pos.y = adapted_pos.y + 100
-		ball.teleport(adapted_pos)
+		teleport(adapted_pos, ball)
 
 # Function to set the players starting position and activate the player
-func start(pos: Vector2, ball_obj: RigidBody2D, planets: Array[StaticBody2D]):
+func start(pos: Vector2, ball_obj: RigidBody2D, planets: Array[StaticBody2D], goal: Area2D):
 	released = false
 	ball = ball_obj
 	position = pos
 	PLANETS = planets
 	for planet in PLANETS:
 		simulation_viewport.add_child(planet.duplicate())
+	simulation_goal = goal.duplicate()
+	simulation_viewport.add_child(simulation_goal)
 	show()
 
 func release():
 	if (!released):
-		ball.release()
+		var space : RID = get_viewport().world_2d.space
+		PhysicsServer2D.space_set_active(space, false)
+		ball.apply_impulse(EXPLOSION_FORCE)
+		RapierPhysicsServer2D.space_step(space, fixed_delta)
+		RapierPhysicsServer2D.space_flush_queries(space)
+		PhysicsServer2D.space_set_active(space, true)
 	released = true
 
 # Draw a prediction path of the player
 func _draw() -> void:
-	simulate_trajectory()
+	# Simulate for every position
+	if (false):
+		for x in screen_size.x/10:
+			simulate_trajectory(Vector2(x*10, global_position.y + 100), 100)
+	
+	# Take the current position
+	simulate_trajectory(Vector2(global_position.x, global_position.y + 100), 500)
 	
 # Simulate the trajectory using Rapier2Ds manual step
-func simulate_trajectory() -> void:
+func simulate_trajectory(start_position: Vector2, steps: int) -> void:
 	var space : RID = simulation_viewport.world_2d.space
-	var fixed_delta = 1.0 / ProjectSettings.get_setting("physics/common/physics_ticks_per_second")
+	
 	# Create our simulation test ball
 	var sim_ball = instantiate_ball(simulation_viewport)
-	sim_ball.apply_force(Vector2(0, EXPLOSION_FORCE))
-	teleport(Vector2(global_position.x, global_position.y + 100), sim_ball)
+	teleport(Vector2(start_position), sim_ball)
 	
 	# Create our line parameters
 	var line_start : Vector2
 	var line_end : Vector2
 	var colors := [Color.RED, Color.BLUE]
+	
+	line_start = sim_ball.global_position
+	RapierPhysicsServer2D.space_step(space, fixed_delta)
+	RapierPhysicsServer2D.space_flush_queries(space)
+	sim_ball.apply_impulse(EXPLOSION_FORCE)
 
 	# Run the physics loop and draw the line after each step
-	for i in 1000:
+	for i in steps:
 		line_start = sim_ball.global_position
 		RapierPhysicsServer2D.space_step(space, fixed_delta)
 		RapierPhysicsServer2D.space_flush_queries(space)
+		# Predict collisions:
+		#print(predict_goal_collision(sim_ball))
+		
 		line_end = sim_ball.global_position
 		draw_line_global(line_start, line_end, colors[i%2])
 	
 	# Delete the simulation test ball
 	sim_ball.queue_free()
+
+func predict_goal_collision(colliding_body: RigidBody2D) -> bool:
+	var bodies = colliding_body.body_entered
+	#for body in bodies:
+	#	if body == simulation_goal:
+	#		return true
+	return false
+	
 
 # Draw a line using global coordinates
 func draw_line_global(pointA: Vector2, pointB: Vector2, color: Color, width: int = -1) -> void:
