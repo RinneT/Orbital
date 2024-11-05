@@ -17,7 +17,7 @@ func _process(delta):
 func new_game():
 	var planets : Array[StaticBody2D] = [$Planet, $Planet2, $Planet3]
 	bounces = 0
-	$Clamp.start($Player_Clamp_Start.position, $Ball, planets, $Goal)
+	$Clamp.start($Player_Clamp_Start.position, $Ball, planets, $Goal, $Powerup)
 	$Ball.start()
 	$Hud.update_score(bounces)
 	$Background.visible = true

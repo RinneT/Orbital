@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://e6qbwnhy6wsu"]
+[gd_scene load_steps=9 format=3 uid="uid://e6qbwnhy6wsu"]
 
 [ext_resource type="PackedScene" uid="uid://cka8tmylt5701" path="res://clamp.tscn" id="1_jo45g"]
 [ext_resource type="Script" path="res://main.gd" id="1_ks33d"]
@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://b1n7ukhbo223n" path="res://goal.tscn" id="5_6ibg7"]
 [ext_resource type="PackedScene" uid="uid://bjjjduxnj3q88" path="res://hud.tscn" id="6_6riio"]
 [ext_resource type="Texture2D" uid="uid://cdop3sevhiq4f" path="res://Background.png" id="7_prhh8"]
+[ext_resource type="PackedScene" uid="uid://8xvw84i33500" path="res://powerup.tscn" id="8_4rq4i"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_ks33d")
@@ -43,6 +44,9 @@ visible = false
 show_behind_parent = true
 position = Vector2(960, 540)
 texture = ExtResource("7_prhh8")
+
+[node name="Powerup" parent="." instance=ExtResource("8_4rq4i")]
+position = Vector2(1293, 795)
 
 [connection signal="hit" from="Goal" to="." method="goal"]
 [connection signal="body_entered" from="Ball" to="." method="_on_ball_body_entered"]

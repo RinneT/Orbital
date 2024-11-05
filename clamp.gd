@@ -7,6 +7,7 @@ var PLANETS : Array[StaticBody2D]
 var released # true if the Ball was released
 var simulation_viewport : SubViewport
 var simulation_goal: Area2D
+var simulation_powerup: Area2D
 
 # TODO: Unify with ball
 var test_ball = preload("res://ball.tscn")
@@ -62,7 +63,7 @@ func _process(delta):
 		teleport(adapted_pos, ball)
 
 # Function to set the players starting position and activate the player
-func start(pos: Vector2, ball_obj: RigidBody2D, planets: Array[StaticBody2D], goal: Area2D):
+func start(pos: Vector2, ball_obj: RigidBody2D, planets: Array[StaticBody2D], goal: Area2D, powerup: Area2D):
 	released = false
 	ball = ball_obj
 	position = pos
@@ -71,6 +72,8 @@ func start(pos: Vector2, ball_obj: RigidBody2D, planets: Array[StaticBody2D], go
 		simulation_viewport.add_child(planet.duplicate())
 	simulation_goal = goal.duplicate()
 	simulation_viewport.add_child(simulation_goal)
+	simulation_powerup = powerup.duplicate()
+	simulation_viewport.add_child(simulation_powerup)
 	show()
 
 func release():
